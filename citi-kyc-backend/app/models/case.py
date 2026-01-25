@@ -20,11 +20,11 @@ class CaseStatus(str, enum.Enum):
 class KYCCase(Base):
     __tablename__ = "cases"
 
-    id: Mapped[str] = mapped_column(String(50), primary_key=True)   # internal id
+    internal_case_id: Mapped[str] = mapped_column(String(50), primary_key=True)   # internal id
     customer_id: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     category_id: Mapped[str] = mapped_column(String(50), nullable=False)
 
-    status: Mapped[CaseStatus] = mapped_column(Enum(CaseStatus), default=CaseStatus.DRAFT)
+    status: Mapped[CaseStatus] = mapped_column(Enum(CaseStatus), default=CaseStatus.DRAFT, create_constraint=True, native_enum=True)
 
     policy_version: Mapped[str] = mapped_column(String(50), default="v1.0")
     user_payload: Mapped[dict] = mapped_column(JSON, nullable=True)  # form data
@@ -32,5 +32,5 @@ class KYCCase(Base):
 
     final_case_id: Mapped[str | None] = mapped_column(String(50), nullable=True)  # customer visible id
 
-    created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    timestamp_created: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

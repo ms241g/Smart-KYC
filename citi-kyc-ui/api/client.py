@@ -29,6 +29,13 @@ def get(path: str, params=None, headers=None):
         raise APIError(f"Request to {url} failed: {e}")
 
 def post(path: str, json=None, headers=None):
+    print(f"Making post request to {BACKEND_BASE_URL}{path} with params {json}")
+    logger.info(f"Making post request to {BACKEND_BASE_URL}{path} with params {json}")    
     url = f"{BACKEND_BASE_URL}{path}"
-    resp = requests.post(url, json=json, headers=headers, timeout=20)
-    return _handle(resp)
+    try:
+        resp = requests.post(url, json=json, headers=headers, timeout=20)
+        print(f"Received response: {resp.status_code} - {resp}")
+        return _handle(resp)
+    except requests.RequestException as e:
+        logger.error(f"Request to {url} failed: {e}")
+        raise APIError(f"Request to {url} failed: {e}")

@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.schemas.case import (
@@ -17,14 +18,19 @@ from app.workflows.tasks import validate_case_async
 class CaseService:
     async def initiate_case(self, payload: CaseInitiateRequest, db: AsyncSession) -> CaseInitiateResponse:
         case_id = f"INT-{uuid.uuid4().hex[:12].upper()}"
+        created_at = datetime.now(timezone.utc)
+        print("Initiating case with ID:", case_id, "with payload:", payload)
 
         case = KYCCase(
-            id=case_id,
+            internal_case_id=case_id,
             customer_id=payload.customer_id,
             category_id=payload.category_id,
+            policy_version="v1.0",
             status=CaseStatus.DRAFT,
             evidence_ids=[],
             user_payload=None,
+            timestamp_created=created_at,
+            updated_at=created_at,
         )
         db.add(case)
         await db.commit()
