@@ -43,6 +43,7 @@ def render():
             file_hash = _sha256(content)
 
             # 1) Presigned URL
+            print(f"Uploading file: {f.name}, case_id={case_id}, content_type={content_type}")
             up = evidence.get_upload_url(case_id=case_id, file_name=f.name, content_type=content_type)
 
             # 2) Upload bytes to S3

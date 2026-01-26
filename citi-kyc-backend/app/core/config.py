@@ -12,11 +12,11 @@ class Settings(BaseSettings):
     redis_backend_url: str = "db+sqlite:///celery_results.sqlite"
 
     # Evidence storage (S3 compatible)
-    s3_region: str = "ap-south-1"
+    s3_region: str = "us-east-1"
     s3_bucket: str = "citi-kyc-evidence"
     s3_endpoint_url: str | None = None  # for MinIO/local
-    s3_access_key_id: str | None = None
-    s3_secret_access_key: str | None = None
+    s3_access_key_id: str | None = ""
+    s3_secret_access_key: str | None = ""
     s3_url_expiry_seconds: int = 900  # 15 min
 
     # Customer profile service (adapter)

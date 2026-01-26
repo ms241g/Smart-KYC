@@ -1,6 +1,6 @@
 import hashlib
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import boto3
@@ -52,20 +52,24 @@ class EvidenceService:
         payload: EvidenceUploadUrlRequest,
         db: AsyncSession,
     ) -> EvidenceUploadUrlResponse:
+        print(f"Generating upload URL for case_id={payload.case_id}")
         if payload.content_type not in ALLOWED_CONTENT_TYPES:
             raise ValueError(f"Unsupported content_type: {payload.content_type}")
 
+        now = datetime.now(timezone.utc)
         evidence_id = f"EVD-{uuid.uuid4().hex[:16].upper()}"
         storage_key = self._generate_storage_key(payload.case_id, evidence_id, payload.file_name)
 
         # Persist metadata
         ev = Evidence(
-            id=evidence_id,
-            case_id=payload.case_id,
+            evidence_id=evidence_id,
+            internal_case_id=payload.case_id,
             file_name=payload.file_name,
             content_type=payload.content_type,
             storage_key=storage_key,
             status=EvidenceStatus.INITIATED,
+            timestamp_created=now,
+            updated_at=now,
         )
         db.add(ev)
         await db.commit()
@@ -94,14 +98,14 @@ class EvidenceService:
         payload: EvidenceConfirmUploadRequest,
         db: AsyncSession,
     ) -> EvidenceConfirmUploadResponse:
-        q = await db.execute(select(Evidence).where(Evidence.id == payload.evidence_id))
+        q = await db.execute(select(Evidence).where(Evidence.evidence_id == payload.evidence_id))
         ev: Evidence | None = q.scalar_one_or_none()
         if not ev:
             raise ValueError("Evidence not found")
 
         # Idempotency: allow repeat confirm with same values
         if ev.status == EvidenceStatus.VERIFIED:
-            return EvidenceConfirmUploadResponse(evidence_id=ev.id, status=ev.status.value)
+            return EvidenceConfirmUploadResponse(evidence_id=ev.evidence_id, status=ev.status.value)
 
         ev.sha256 = payload.sha256
         ev.file_size = payload.file_size
@@ -111,13 +115,13 @@ class EvidenceService:
 
         await AuditLogger().log(
             event_type=AuditEventType.EVIDENCE_EVENT,
-            payload={"event": "CONFIRM_UPLOAD", "evidence_id": ev.id, "storage_key": ev.storage_key},
+            payload={"event": "CONFIRM_UPLOAD", "evidence_id": ev.evidence_id, "storage_key": ev.storage_key},
             db=db,
-            case_id=ev.case_id
+            case_id=ev.internal_case_id
         )        
 
-        return EvidenceConfirmUploadResponse(evidence_id=ev.id, status=ev.status.value)
+        return EvidenceConfirmUploadResponse(evidence_id=ev.evidence_id, status=ev.status.value)
 
     async def get_evidence_by_case(self, case_id: str, db: AsyncSession) -> list[Evidence]:
-        q = await db.execute(select(Evidence).where(Evidence.case_id == case_id))
+        q = await db.execute(select(Evidence).where(Evidence.internal_case_id == case_id))
         return list(q.scalars().all())

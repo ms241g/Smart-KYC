@@ -30,10 +30,10 @@ def get(path: str, params=None, headers=None):
 
 def post(path: str, json=None, headers=None):
     print(f"Making post request to {BACKEND_BASE_URL}{path} with params {json}")
-    logger.info(f"Making post request to {BACKEND_BASE_URL}{path} with params {json}")    
+    #logger.info(f"Making post request to {BACKEND_BASE_URL}{path} with params {json}")    
     url = f"{BACKEND_BASE_URL}{path}"
     try:
-        resp = requests.post(url, json=json, headers=headers, timeout=20)
+        resp = requests.post(url, json=json, headers=headers, timeout=200)
         print(f"Received response: {resp.status_code} - {resp}")
         return _handle(resp)
     except requests.RequestException as e:
