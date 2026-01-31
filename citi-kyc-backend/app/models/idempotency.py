@@ -6,7 +6,7 @@ from app.db.base import Base
 class IdempotencyKey(Base):
     __tablename__ = "idempotency_keys"
 
-    id: Mapped[str] = mapped_column(String(120), primary_key=True)  # idempotency key
+    idempotency_key: Mapped[str] = mapped_column(String(120), primary_key=True)  # idempotency key
     endpoint: Mapped[str] = mapped_column(String(200), nullable=False)
 
     # stored successful response snapshot

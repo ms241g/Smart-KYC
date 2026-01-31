@@ -66,6 +66,8 @@ citi-kyc-ui/
 4. **Run Celery worker:**
 	```
 	celery -A app.workflows.celery_app.celery_app worker --loglevel=info
+	celery -A app.workflows.celery_app.celery_app worker --loglevel=info --pool=solo
+
 	```
 
 5. **Environment variables (example):**
@@ -84,7 +86,7 @@ citi-kyc-ui/
 
 2. **Run the UI:**
 	```
-	streamlit run app.py
+	uv run streamlit run app.py
 	```
 
 ## Configuration

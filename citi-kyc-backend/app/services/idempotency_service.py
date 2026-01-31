@@ -5,7 +5,8 @@ from app.models.idempotency import IdempotencyKey
 
 class IdempotencyService:
     async def get(self, key: str, endpoint: str, db: AsyncSession) -> dict | None:
-        q = await db.execute(select(IdempotencyKey).where(IdempotencyKey.id == key))
+        print("getting idempotency key:", key, "for endpoint:", endpoint)
+        q = await db.execute(select(IdempotencyKey).where(IdempotencyKey.idempotency_key == key))
         item = q.scalar_one_or_none()
         if not item:
             return None
@@ -15,6 +16,6 @@ class IdempotencyService:
         return item.response_payload
 
     async def store(self, key: str, endpoint: str, response_payload: dict, db: AsyncSession):
-        item = IdempotencyKey(id=key, endpoint=endpoint, response_payload=response_payload)
+        item = IdempotencyKey(idempotency_key=key, endpoint=endpoint, response_payload=response_payload)
         db.add(item)
         await db.commit()

@@ -19,7 +19,7 @@ class DiscrepancySeverity(str, enum.Enum):
 class Discrepancy(Base):
     __tablename__ = "discrepancies"
 
-    id: Mapped[str] = mapped_column(String(50), primary_key=True)
+    discrepancy_id: Mapped[str] = mapped_column(String(50), primary_key=True)
     case_id: Mapped[str] = mapped_column(String(50), ForeignKey("cases.id"), index=True)
 
     field: Mapped[str] = mapped_column(String(100))

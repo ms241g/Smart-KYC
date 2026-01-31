@@ -29,7 +29,7 @@ async def _validate_case(case_id: str):
     registry = get_registry()
 
     async with AsyncSessionLocal() as db:
-        case_q = await db.execute(select(KYCCase).where(KYCCase.id == case_id))
+        case_q = await db.execute(select(KYCCase).where(KYCCase.internal_case_id == case_id))
         case = case_q.scalar_one_or_none()
         if not case:
             return
@@ -42,19 +42,20 @@ async def _validate_case(case_id: str):
         category_rules = await policy.get_category_rules(case.category_id)
         allowed_doc_types = category_rules.get("allowed_doc_types", [])
         extraction_fields = category_rules.get("extraction_fields", ["full_name", "dob"])
-
+        print(f"Policy rules for category {case.category_id}: allowed_doc_types={allowed_doc_types}, extraction_fields={extraction_fields}")
         # Fetch customer profile
         profile = await CustomerProfileService().fetch_customer_profile(case.customer_id)
+        print(f"Customer profile for customer {case.customer_id}: {profile}")
 
         # Fetch evidences
         evidence_objs = []
         if case.evidence_ids:
-            ev_q = await db.execute(select(Evidence).where(Evidence.id.in_(case.evidence_ids)))
+            ev_q = await db.execute(select(Evidence).where(Evidence.evidence_id.in_(case.evidence_ids)))
             evidence_objs = list(ev_q.scalars().all())
 
         evidences = [
             EvidenceInput(
-                evidence_id=e.id,
+                evidence_id=e.evidence_id,
                 storage_key=e.storage_key,
                 content_type=e.content_type,
                 file_name=e.file_name
@@ -64,7 +65,7 @@ async def _validate_case(case_id: str):
 
         # Construct context
         ctx = CaseContextInput(
-            case_id=case.id,
+            case_id=case.internal_case_id,
             category_id=case.category_id,
             policy_version=case.policy_version,
             customer_profile=CustomerProfileInput(
@@ -83,20 +84,37 @@ async def _validate_case(case_id: str):
         # ----------------------------
         extracted_bundle = {}
         for ev in evidences:
-            ocr = await registry.ocr.run(ev)
+            try:
+                ocr = await registry.ocr.run(ev)
+                if ocr.language != "en":
+                    tr = await registry.translation.translate(ocr, target_language="en")
+                    text = tr.translated_text                
+            except Exception as e:
+                #text = ""
+                print(f"OCR error for evidence {ev.evidence_id}: {e}")
+                await DiscrepancyService().create(
+                    case_id=case.internal_case_id,
+                    field="evidence_processing",
+                    message=f"Failed to process evidence {ev.evidence_id}: {e}",
+                    severity=DiscrepancySeverity.HIGH,
+                    resolution_required=True,
+                    db=db
+                )
+                case.status = CaseStatus.ACTION_REQUIRED
+                await db.commit()
+                return
             text = ocr.raw_text
-
-            if ocr.language != "en":
-                tr = await registry.translation.translate(ocr, target_language="en")
-                text = tr.translated_text
-
+            print(f"OCR result for evidence {ev.evidence_id}: language={ocr.language}, confidence={ocr.confidence}, text_snippet={text[:50]}")
+            
             doc_type = await registry.classifier.classify(ev)
+            print(f"Document classification for evidence {ev.evidence_id}: {doc_type}")
 
             # ✅ Doc-type validation vs policy
             result = validate_doc_type(case.category_id, ev.evidence_id, doc_type.document_type, allowed_doc_types)
             if not result.is_valid:
+                print(f"Document type validation failed for evidence {ev.evidence_id}: {result.message}")
                 await DiscrepancyService().create(
-                    case_id=case.id,
+                    case_id=case.internal_case_id,
                     field=result.discrepancy_field,
                     message=result.message,
                     expected_value=result.expected_value,
@@ -120,16 +138,18 @@ async def _validate_case(case_id: str):
 
         # Attach extracted summary into context
         ctx.form_payload = {**ctx.form_payload, "_evidence_extracted": extracted_bundle}
+        print(f"Extracted data bundle for case {case.internal_case_id}: {extracted_bundle}")
 
         # ----------------------------
         # ✅ Discrepancy reasoning (Gemini)
         # ----------------------------
         reasoning = await registry.reasoner.reason(ctx)
+        print(f"Discrepancy reasoning result for case {case.internal_case_id}: confidence={reasoning.confidence.value}, discrepancies_count={len(reasoning.discrepancies)}")
 
         if reasoning.discrepancies:
             for d in reasoning.discrepancies:
                 await DiscrepancyService().create(
-                    case_id=case.id,
+                    case_id=case.internal_case_id,
                     field=d.field,
                     message=d.explanation or "Discrepancy detected",
                     expected_value=d.expected,

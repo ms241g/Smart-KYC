@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     s3_access_key_id: str | None = ""
     s3_secret_access_key: str | None = ""
     s3_url_expiry_seconds: int = 900  # 15 min
+    gemini_api_key: str | None = None
+    use_gemini_plugins: bool = False
+    gemini_model: str | None = None
 
     # Customer profile service (adapter)
     customer_profile_base_url: str = "http://customer-profile-service:8080"
@@ -27,5 +30,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        env_file_encoding = "utf-8"
+        extra = "allow"
 
 settings = Settings()

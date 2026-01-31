@@ -35,7 +35,7 @@ class DiscrepancyService:
         db: AsyncSession,
     ) -> Discrepancy:
         disc = Discrepancy(
-            id=f"DISC-{uuid.uuid4().hex[:12].upper()}",
+            discrepancy_id=f"DISC-{uuid.uuid4().hex[:12].upper()}",
             case_id=case_id,
             field=field,
             message=message,
