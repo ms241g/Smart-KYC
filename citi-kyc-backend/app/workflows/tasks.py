@@ -79,62 +79,64 @@ async def _validate_case(case_id: str):
             evidences=evidences
         )
 
-        # ----------------------------
-        # Per evidence AI pipeline
-        # ----------------------------
+
+# ----------------------------
+# Per evidence AI pipeline (Multimodal Gemini)
+# ----------------------------
         extracted_bundle = {}
+
         for ev in evidences:
             try:
-                ocr = await registry.ocr.run(ev)
-                if ocr.language != "en":
-                    tr = await registry.translation.translate(ocr, target_language="en")
-                    text = tr.translated_text                
+                # 1️⃣ Classify document type directly from file
+                doc_type = await registry.classifier.classify(ev)
+                print(f"Document classification for evidence {ev.evidence_id}: {doc_type}")
+
+                # 2️⃣ Validate document type against policy
+                result = validate_doc_type(case.category_id, ev.evidence_id, doc_type.document_type, allowed_doc_types)
+                print(f"Document type validation for evidence {ev.evidence_id}: is_valid={result.is_valid}, message={result.message}")
+                if not result.is_valid:
+                    await DiscrepancyService().create(
+                        case_id=case.internal_case_id,
+                        field=result.discrepancy_field,
+                        message=result.message,
+                        expected_value=result.expected_value,
+                        received_value=result.received_value,
+                        severity=result.severity,
+                        resolution_required=result.resolution_required,
+                        db=db
+                    )
+                    case.status = CaseStatus.ACTION_REQUIRED
+                    await db.commit()
+                    return
+
+                # 3️⃣ Extract structured fields directly from document
+                fields = await registry.extractor.extract_from_evidence(
+                    storage_key=ev.storage_key,
+                    fields_to_extract=extraction_fields
+                )
+
+                extracted_bundle[ev.evidence_id] = {
+                    "doc_type": doc_type.model_dump(),
+                    "fields": fields.model_dump(),
+                    "llm_confidence": 0.85  # placeholder; extractor may later return aggregate confidence
+                }
+
             except Exception as e:
-                #text = ""
-                print(f"OCR error for evidence {ev.evidence_id}: {e}")
+                print(f"Discrepancy in AI processing error for evidence {ev.evidence_id}: {e}")
                 await DiscrepancyService().create(
                     case_id=case.internal_case_id,
                     field="evidence_processing",
                     message=f"Failed to process evidence {ev.evidence_id}: {e}",
                     severity=DiscrepancySeverity.HIGH,
                     resolution_required=True,
-                    db=db
-                )
-                case.status = CaseStatus.ACTION_REQUIRED
-                await db.commit()
-                return
-            text = ocr.raw_text
-            print(f"OCR result for evidence {ev.evidence_id}: language={ocr.language}, confidence={ocr.confidence}, text_snippet={text[:50]}")
-            
-            doc_type = await registry.classifier.classify(ev)
-            print(f"Document classification for evidence {ev.evidence_id}: {doc_type}")
-
-            # ✅ Doc-type validation vs policy
-            result = validate_doc_type(case.category_id, ev.evidence_id, doc_type.document_type, allowed_doc_types)
-            if not result.is_valid:
-                print(f"Document type validation failed for evidence {ev.evidence_id}: {result.message}")
-                await DiscrepancyService().create(
-                    case_id=case.internal_case_id,
-                    field=result.discrepancy_field,
-                    message=result.message,
-                    expected_value=result.expected_value,
-                    received_value=result.received_value,
-                    severity=result.severity,
-                    resolution_required=result.resolution_required,
+                    expected_value=None,
+                    received_value=None,
                     db=db
                 )
                 case.status = CaseStatus.ACTION_REQUIRED
                 await db.commit()
                 return
 
-            # ✅ Policy-driven extraction schema
-            fields = await registry.extractor.extract(text, fields_to_extract=extraction_fields)
-
-            extracted_bundle[ev.evidence_id] = {
-                "doc_type": doc_type.model_dump(),
-                "fields": fields.model_dump(),
-                "ocr_confidence": ocr.confidence.value,
-            }
 
         # Attach extracted summary into context
         ctx.form_payload = {**ctx.form_payload, "_evidence_extracted": extracted_bundle}

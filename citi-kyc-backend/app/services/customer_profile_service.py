@@ -63,16 +63,16 @@ class CustomerProfileService:
         """
         data = {
             "customer_id": customer_id,
-            "full_name": "Manoj Sharma",
-            "dob": "1990-01-10",
+            "full_name": "Manoj Kumar Sharma",
+            "dob": "1983-02-06",
             "citizenship": "India",
             "address": {
-                "line1": "221B Baker Street",
-                "line2": "Near MG Road",
-                "city": "mumbai",
-                "state": "mh",
-                "postal_code": "400001",
-                "country": "india",
+                "line1": "T A 180 GALI NO 3",
+                "line2": "TUGHALAKABAD EXTENSION",
+                "city": "NEW DELHI ",
+                "state": "ND",
+                "postal_code": "110019",
+                "country": "INDIA",
             },
         }
         return self._normalize(data)

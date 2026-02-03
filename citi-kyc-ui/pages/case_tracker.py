@@ -43,6 +43,53 @@ def render_form_fields(required_fields: list) -> dict:
 
     return data
 
+def render_new_form_fields(required_fields: list) -> dict:
+    """
+    Dynamic form based on required_fields from policy.
+    Values stored in session_state for persistence across reruns.
+    """
+    st.markdown("### Customer / Entity Details")
+
+    def _get(key, default=""):
+        return st.session_state.get(key, default)
+
+    data = {}
+
+    if "full_name" in required_fields:
+        data["full_name"] = st.text_input("Full Name *", key="full_name", value=_get("full_name"))
+
+    if "dob" in required_fields:
+        data["dob"] = st.text_input("DOB (YYYY-MM-DD) *", key="dob", value=_get("dob"))
+
+    if "citizenship" in required_fields:
+        data["citizenship"] = st.text_input("Citizenship *", key="citizenship", value=_get("citizenship"))
+
+    if "address" in required_fields:
+        st.markdown("#### Address")
+        data["address"] = {
+            "line1": st.text_input("Address Line 1 *", key="addr_line1", value=_get("addr_line1")),
+            "line2": st.text_input("Address Line 2", key="addr_line2", value=_get("addr_line2")),
+            "city": st.text_input("City *", key="addr_city", value=_get("addr_city")),
+            "state": st.text_input("State/Province", key="addr_state", value=_get("addr_state")),
+            "postal_code": st.text_input("Postal Code *", key="addr_postal", value=_get("addr_postal")),
+            "country": st.text_input("Country *", key="addr_country", value=_get("addr_country")),
+        }
+
+    if "business_name" in required_fields:
+        data["business_name"] = st.text_input("Business Name *", key="business_name", value=_get("business_name"))
+
+    if "registration_id" in required_fields:
+        data["registration_id"] = st.text_input("Registration ID *", key="registration_id", value=_get("registration_id"))
+
+    if "country_of_registration" in required_fields:
+        data["country_of_registration"] = st.text_input("Country of Registration *", key="country_of_registration", value=_get("country_of_registration"))
+
+    if "source_of_funds" in required_fields:
+        data["source_of_funds"] = st.text_area("Source of Funds *", key="source_of_funds", value=_get("source_of_funds"))
+
+    return data
+
+
 def render():
     st.subheader("📌 Submit & Track Case")
     render_compliance_notice()
@@ -60,11 +107,13 @@ def render():
     st.markdown(f"**Evidence Uploaded:** {len(evidence_ids)}")
 
     st.divider()
-    customer_details = render_form_fields(required_fields)
+    customer_details = render_new_form_fields(required_fields)
 
     consent = st.checkbox("I confirm submitted details are accurate and authorized for compliance review.", value=False)
 
-    if st.button("Submit Case for Validation ✅"):
+    submit_disabled = st.session_state.get("latest_status", {}).get("status") in ["VALIDATING", "ACTION_REQUIRED", "VALIDATED", "IN_REVIEW"]
+
+    if st.button("Submit Case for Validation ✅", disabled=submit_disabled):
         if not consent:
             st.error("Consent required.")
             return
@@ -80,6 +129,7 @@ def render():
             idempotency_key=st.session_state["idempotency_key"],
         )
         st.success(f"Submitted case. Status: {resp['status']}")
+
 
     st.divider()
 

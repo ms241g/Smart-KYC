@@ -20,7 +20,7 @@ class Discrepancy(Base):
     __tablename__ = "discrepancies"
 
     discrepancy_id: Mapped[str] = mapped_column(String(50), primary_key=True)
-    case_id: Mapped[str] = mapped_column(String(50), ForeignKey("cases.id"), index=True)
+    case_id: Mapped[str] = mapped_column(String(50), ForeignKey("cases.internal_case_id"), index=True)
 
     field: Mapped[str] = mapped_column(String(100))
     message: Mapped[str] = mapped_column(String(500))
@@ -30,6 +30,6 @@ class Discrepancy(Base):
     severity: Mapped[DiscrepancySeverity] = mapped_column(Enum(DiscrepancySeverity), default=DiscrepancySeverity.MEDIUM)
     status: Mapped[DiscrepancyStatus] = mapped_column(Enum(DiscrepancyStatus), default=DiscrepancyStatus.OPEN)
 
-    resolution_required: Mapped[dict] = mapped_column(JSON, nullable=True)  # e.g. required_doc="utility_bill"
+    resolution_required: Mapped[bool] = mapped_column(nullable=True)  # e.g. required_doc="utility_bill"
 
     created_at: Mapped[str] = mapped_column(DateTime(timezone=True), server_default=func.now())

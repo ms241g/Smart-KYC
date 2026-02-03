@@ -10,4 +10,4 @@ class DiscrepancyOut(BaseModel):
     received_value: Optional[str] = None
     severity: str
     status: str
-    resolution_required: Optional[Dict] = None
+    resolution_required: Optional[bool] = None

@@ -18,6 +18,7 @@ You are a compliance-grade KYC discrepancy reasoner for Citi Bank.
 
 You must:
 - Compare authoritative customer profile vs user payload vs evidence extracted fields
+- Make sure to compare everything in upparcase, ignoring punctuation and prefixes
 - Identify mismatches relevant to KYC policy
 - Produce discrepancies with severity and resolution guidance
 
@@ -54,23 +55,24 @@ EVIDENCE_LIST:
 """
 
         out: GeminiReasoningOutput = self.client.generate_structured(
-            prompt=prompt,
-            schema_model=GeminiReasoningOutput,
-            temperature=0.15,
-            max_output_tokens=2048,
-        )
-
-        discrepancies = [
-            DiscrepancyItem(
-                field=d.field,
-                expected=d.expected,
-                received=d.received,
-                severity=d.severity,
-                resolution_required=d.resolution_required,
-                explanation=d.explanation,
+                prompt=prompt,
+                schema_model=GeminiReasoningOutput,
+                temperature=0.15,
+                max_output_tokens=2048,
             )
-            for d in out.discrepancies
+        print("Gemini Flash Discrepancy Reasoner Output:", out.model_dump())
+        discrepancies = [
+                DiscrepancyItem(
+                    field=d.field,
+                    expected=d.expected,
+                    received=d.received,
+                    severity=d.severity.upper(),  # normalize
+                    resolution_required=d.resolution_required,
+                    explanation=d.explanation,
+                )
+                for d in out.discrepancies
         ]
+
 
         return ReasoningResult(
             discrepancies=discrepancies,

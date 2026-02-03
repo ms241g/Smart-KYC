@@ -99,9 +99,11 @@ class CaseService:
                 raise ValueError("Case not found")
 
             discrepancies = await DiscrepancyService().list_open(case_id, db)
+            print(f"Found {len(discrepancies)} open discrepancies for case {case_id}")
+            print("resolution_required fields:", [d.resolution_required for d in discrepancies])
             disc_out = [
                 DiscrepancyOut(
-                    id=d.id,
+                    id=d.discrepancy_id,
                     field=d.field,
                     message=d.message,
                     expected_value=d.expected_value,

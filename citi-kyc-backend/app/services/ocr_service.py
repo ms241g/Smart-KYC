@@ -29,15 +29,23 @@ class TesseractOCRProvider(OCRProviderBase):
 
     async def extract_text(self, evidence: EvidenceInput) -> OCRResult:
         # Download file bytes from S3 using storage key
-        file_bytes = self._download_from_s3(evidence.storage_key)
+        try:
+            file_bytes = self._download_from_s3(evidence.storage_key)
+        except RuntimeError as e:
+            raise RuntimeError(f"Failed to download file from s3 for evidence_id={evidence.evidence_id}: {e}")
         print(f"Downloaded {len(file_bytes)} bytes from S3 for evidence_id={evidence.evidence_id}")
-
         # Load into PIL
-        image = Image.open(io.BytesIO(file_bytes))
+        try:
+            image = Image.open(io.BytesIO(file_bytes))
+        except Exception as e:
+            raise RuntimeError(f"Failed to load image into object from S3 downloaded evidence_id={evidence.evidence_id}: {e}")
         print(f"Image format: {image.format}, size: {image.size}, mode: {image.mode}")
 
         # Run OCR
-        text = pytesseract.image_to_string(image)
+        try:
+            text = pytesseract.image_to_string(image)
+        except Exception as e:
+            raise RuntimeError(f"Failed to run OCR for evidence_id={evidence.evidence_id}: {e}")
         print(f"OCR extracted text (first 100 chars): {text[:100]}...")
 
         return OCRResult(

@@ -46,7 +46,7 @@ class DiscrepancyItem(BaseModel):
     expected: Optional[str]
     received: Optional[str]
     severity: str  # LOW/MEDIUM/HIGH/CRITICAL
-    resolution_required: Optional[Dict[str, Any]] = None
+    resolution_required: Optional[bool] = None
     explanation: Optional[str] = None
 
 
