@@ -72,6 +72,7 @@ class CaseService:
                 raise ValueError("Case not found")
 
             # merge updates
+            print("Resolving case", case_id, "with payload:", payload)
             if payload.updated_customer_details:
                 case.user_payload = payload.updated_customer_details
 

@@ -7,7 +7,7 @@ from app.utils.state_machine import can_transition
 
 class HumanReviewService:
     async def submit_for_review(self, case_id: str, db: AsyncSession) -> KYCCase:
-        q = await db.execute(select(KYCCase).where(KYCCase.id == case_id))
+        q = await db.execute(select(KYCCase).where(KYCCase.internal_case_id == case_id))
         case = q.scalar_one_or_none()
         if not case:
             raise ValueError("Case not found")

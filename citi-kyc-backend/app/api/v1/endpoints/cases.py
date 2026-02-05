@@ -1,5 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi import Header
+from fastapi import HTTPException
+import traceback
 from app.services.idempotency_service import IdempotencyService
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_db
@@ -63,8 +65,6 @@ async def resolve_case(case_id: str, payload: CaseResolveRequest, db: AsyncSessi
     try:
         return await CaseService().resolve_case(case_id, payload, db)
     except Exception as e:
-        from fastapi import HTTPException
-        import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -85,7 +85,7 @@ async def submit_for_review(case_id: str, db: AsyncSession = Depends(get_db)):
     try:
         case = await HumanReviewService().submit_for_review(case_id, db)
         return CaseSubmitForReviewResponse(
-            case_id=case.id,
+            case_id=case.internal_case_id,
             final_case_id=case.final_case_id,
             status=case.status.value
         )

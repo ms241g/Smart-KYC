@@ -60,7 +60,7 @@ citi-kyc-ui/
 
 3. **Run FastAPI server:**
 	```
-	uvicorn app.main:app --reload --port 8000
+	uv run uvicorn app.main:app --reload --port 8000
 	```
 
 4. **Run Celery worker:**

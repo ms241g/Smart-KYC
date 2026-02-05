@@ -63,14 +63,14 @@ class CustomerProfileService:
         """
         data = {
             "customer_id": customer_id,
-            "full_name": "Manoj Kumar Sharma",
+            "full_name": "MANOJ KUMAR SHARMA",
             "dob": "1983-02-06",
-            "citizenship": "India",
+            "citizenship": "INDIAN",
             "address": {
-                "line1": "T A 180 GALI NO 3",
-                "line2": "TUGHALAKABAD EXTENSION",
-                "city": "NEW DELHI ",
-                "state": "ND",
+                "line1": "T A 180 STREET NO 3",
+                "line2": "TUGHALAKABAD EXTN",
+                "city": "DELHI",
+                "state": "DELHI",
                 "postal_code": "110019",
                 "country": "INDIA",
             },
