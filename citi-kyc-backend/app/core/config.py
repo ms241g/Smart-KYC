@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     s3_region: str = "us-east-1"
     s3_bucket: str = "citi-kyc-evidence"
     s3_endpoint_url: str | None = None  # for MinIO/local
-    s3_access_key_id: str | None = "AKIAXWMA6QYW5DHEE6LG"
-    s3_secret_access_key: str | None = "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"
+    s3_access_key_id: str | None = ""
+    s3_secret_access_key: str | None = ""
     s3_url_expiry_seconds: int = 900  # 15 min
     gemini_api_key: str | None = None
     use_gemini_plugins: bool = False
